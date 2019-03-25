@@ -126,7 +126,6 @@ public class FakeInventoryStorage {
     routingContext.response().headers().add("Content-Type", "application/json");
     routingContext.response().setStatusCode(204);
     routingContext.response().end();
-
   }
 
   public static String decode (String string) {
@@ -135,6 +134,7 @@ public class FakeInventoryStorage {
     } catch (UnsupportedEncodingException uee) {
       return "";
     }
+
   }
 
   public static String encode (String string) {
