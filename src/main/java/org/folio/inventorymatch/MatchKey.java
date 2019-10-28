@@ -1,5 +1,11 @@
 package org.folio.inventorymatch;
 
+import java.text.Normalizer;
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -32,20 +38,21 @@ public class MatchKey {
     } if (hasMatchKeyObject(candidateInstance)) {
       // build match key from match key object's properties
       String title = getInstanceMatchKeyValue("title") + " " + getInstanceMatchKeyValue("remainder-of-title");
-
       key.append(get70chars(title))
-         .append(getInstanceMatchKeyValue("medium"))
+         .append(get5chars(getInstanceMatchKeyValue("medium")))
          .append(getInstanceMatchKeyValue("name-of-part-section-of-work"))
          .append(getInstanceMatchKeyValue("number-of-part-section-of-work"))
          .append(getInstanceMatchKeyValue("inclusive-dates"))
          .append(getDateOfPublication())
          .append(getPhysicalDescription())
+         .append(getEdition())
          .append(getPublisher());
     } else {
       // build match key from plain Instance properties
       key.append(get70chars(getTitle()))
          .append(getDateOfPublication())
          .append(getPhysicalDescription())
+         .append(getEdition())
          .append(getPublisher());
     }
     keyStr = key.toString().trim().replace(" ", "_");
@@ -57,6 +64,7 @@ public class MatchKey {
     String title = null;
     if (candidateInstance.containsKey("title")) {
       title = candidateInstance.getString("title");
+      title = unaccent(title);
       title = stripTrimLowercase(title);
     }
     return title;
@@ -68,12 +76,10 @@ public class MatchKey {
       output = String.format("%-70s", input).replace(" ", "_");
     } else {
       output = input.substring(0,45);
-      String[] rest = input.substring(44).split("[ ]+");
+      String[] rest = input.substring(45).split("[ ]+");
       for (int i=0; i<rest.length; i++) {
-        if (output.length()<70 && rest[i].length()>0) {
-          output = output + rest[i].substring(0,1);
-        } else {
-          break;
+        if (output.length()<70) {
+          output = output + (rest[i].length()>0 ? rest[i].substring(0,1) : "");
         }
       }
       if (output.length()<70) {
@@ -97,10 +103,38 @@ public class MatchKey {
     return output;
   }
 
+  private static String unaccent(String str) {
+    return (str == null ? str :
+            Normalizer.normalize(str, Normalizer.Form.NFD)
+                    .replaceAll("[^\\p{ASCII}]", ""));
+  }
+
+  private static final List<Pattern> CONTIGUOUS_CHARS_REGEXS =
+      Arrays.asList(
+        Pattern.compile(".*?(\\p{Alnum}{5}).*"),
+        Pattern.compile(".*?(\\p{Alnum}{4}).*"),
+        Pattern.compile(".*?(\\p{Alnum}{3}).*"),
+        Pattern.compile(".*?(\\p{Alnum}{2}).*"),
+        Pattern.compile(".*?(\\p{Alnum}{1}).*")
+      );
+
+  private String get5chars(String input) {
+    String output = "";
+    for (Pattern p : CONTIGUOUS_CHARS_REGEXS) {
+      Matcher m = p.matcher(input);
+      if (m.matches()) {
+        output = m.group(1);
+        break;
+      }
+    }
+    return String.format("%5s", output).replace(" ", "_");
+  }
+
   private String getInstanceMatchKeyValue(String name) {
     String value = null;
     if (hasMatchKeyObject(candidateInstance)) {
       value = candidateInstance.getJsonObject("matchKey").getString(name);
+      value = unaccent(value);
       value = stripTrimLowercase(value);
     }
     return value != null ? value : "";
@@ -131,18 +165,56 @@ public class MatchKey {
     return dateOfPublication != null && dateOfPublication.length()>=4 ? " "+dateOfPublication.substring(dateOfPublication.length()-4) : "";
   }
 
+  private static final Pattern PAGINATION_REGEX = Pattern.compile(".*?(\\d{1,4}).*");
+
   /**
    * Gets first occurring physical description
    * @return one physical description (empty string if none found)
    */
   public String getPhysicalDescription() {
-    String physicalDescription = null;
+    String physicalDescription = "";
     JsonArray physicalDescriptions = candidateInstance.getJsonArray("physicalDescriptions");
     if (physicalDescriptions != null && physicalDescriptions.getList().size() >0) {
-      physicalDescription = physicalDescriptions.getList().get(0).toString();
+      String physicalDescriptionSource = physicalDescriptions.getList().get(0).toString();
+      physicalDescriptionSource = unaccent(physicalDescriptionSource);
+      Matcher m = PAGINATION_REGEX.matcher(physicalDescriptionSource);
+      if (m.matches()) {
+        physicalDescription = m.group(1);
+      }
     }
-    physicalDescription = stripTrimLowercase(physicalDescription);
-    return physicalDescription != null ? " " + physicalDescription : "";
+    return String.format("%4s", physicalDescription).replace(" ", "_");
+  }
+
+
+  // In order of priority,
+  // pick first occuring 3, else 2, else 1 contiguous digits,
+  // else first 3, else 2, else 1 contiguous characters
+  private static final List<Pattern> EDITION_REGEXS =
+      Arrays.asList(
+        Pattern.compile(".*?(\\d{3}).*"),
+        Pattern.compile(".*?(\\d{2}).*"),
+        Pattern.compile(".*?(\\d{1}).*"),
+        Pattern.compile(".*?(\\p{Alpha}{3}).*"),
+        Pattern.compile(".*?(\\p{Alpha}{2}).*"),
+        Pattern.compile(".*?(\\p{Alpha}{1}).*")
+      );
+
+  public String getEdition() {
+    String edition = "";
+    JsonArray editions = candidateInstance.getJsonArray("editions");
+    if (editions != null && editions.getList().size() > 0) {
+      String editionSource = editions.getList().get(0).toString();
+      editionSource = unaccent(editionSource);
+      Matcher m;
+      for (Pattern p : EDITION_REGEXS) {
+        m = p.matcher(editionSource);
+        if (m.matches()) {
+          edition = m.group(1);
+          break;
+        }
+      }
+    }
+    return String.format("%3s", edition).replace(" ", "_");
   }
 
   public String getPublisher() {
@@ -151,6 +223,7 @@ public class MatchKey {
     if (publication != null && publication.getList().size()>0 ) {
       publisher = publication.getJsonObject(0).getString("publisher");
     }
+    publisher = unaccent(publisher);
     publisher = stripTrimLowercase(publisher);
     return publisher != null ? " " + publisher : "";
   }
