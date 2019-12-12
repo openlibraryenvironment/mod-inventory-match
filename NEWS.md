@@ -1,3 +1,15 @@
+## 2.4.3
+
+ * Fix concurrency issue introduced with 2.4.1
+
+## 2.4.2
+
+ * Fix NPEs in match key generation
+
+## 2.4.1
+
+ * Fix suspected memory leak: close Okapi clients after use
+
 ## 2.4.0
 
 * Add `edition` to match key
