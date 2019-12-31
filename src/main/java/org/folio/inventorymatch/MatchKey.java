@@ -225,7 +225,7 @@ public class MatchKey {
         }
       }
     }
-    return String.format("%3s", edition).replace(" ", "_");
+    return String.format("%3s", edition).replace(" ", "_").toLowerCase();
   }
 
   public String getPublisher() {
