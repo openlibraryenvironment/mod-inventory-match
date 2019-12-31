@@ -70,27 +70,32 @@ public class MatchKey {
     return title;
   }
 
-  private static String get70chars (String input) {
+  protected static String get70chars (String input) {
     String output = "";
-    if (input.length()<70) {
-      output = String.format("%-70s", input).replace(" ", "_");
+    String lastWord = input.split("[ ]+")[input.split("[ ]+").length-1];
+
+    if (input.length()<70 || input.lastIndexOf(lastWord)<=43) {
+      output = input;
     } else {
       output = input.substring(0,45);
-      String[] rest = input.substring(45).split("[ ]+");
-      for (int i=0; i<rest.length; i++) {
-        if (output.length()<70) {
-          output = output + (rest[i].length()>0 ? rest[i].substring(0,1) : "");
+      String[] remainingWords = input.substring(45).split("[ ]+");
+      int iterateFrom =  (input.charAt(44) == ' ' || input.charAt(45) == ' ') ? 0 : 1;
+      for (int i=iterateFrom; i<remainingWords.length; i++) {
+        // First letter of each word, last word in its entirety
+        if (i<remainingWords.length-1) {
+          output += (remainingWords[i].length()>0 ? remainingWords[i].substring(0,1) : "");
+        } else {
+          output +=  " " + remainingWords[i];
         }
       }
-      if (output.length()<70) {
-        output = String.format("%-70s", output).replace(" ", "_");
-      }
     }
+    if (output.length()>70) output = output.substring(0, 70);
+    output = String.format("%-70s", output).replace(" ", "_");
     return output;
   }
 
 
-  private static String stripTrimLowercase(String input) {
+  protected static String stripTrimLowercase(String input) {
     String output = null;
     if (input != null) {
       input = input.replaceFirst("^[aA][ ]+", "");
@@ -103,7 +108,7 @@ public class MatchKey {
     return output;
   }
 
-  private static String unaccent(String str) {
+  protected static String unaccent(String str) {
     return (str == null ? str :
             Normalizer.normalize(str, Normalizer.Form.NFD)
                     .replaceAll("[^\\p{ASCII}]", ""));
