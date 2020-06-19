@@ -48,6 +48,7 @@ public class MatchService {
 
       MatchKey matchKey = new MatchKey(candidateInstance);
       MatchQuery matchQuery = new MatchQuery(matchKey.getKey());
+      candidateInstance.put("matchKey", matchKey.getKey());
       candidateInstance.put("indexTitle", matchKey.getKey());
       logger.info("Constructed match query: [" + matchQuery.getQueryString() + "]");
 
@@ -78,8 +79,6 @@ public class MatchService {
                                MatchQuery matchQuery,
                                RoutingContext routingCtx) {
 
-    // FOLIO Inventory does not know or accept 'matchKey' property at time of writing, clean up if present.
-    candidateInstance.remove("matchKey");
     int recordCount = matchingInstances.getInteger("totalRecords");
     if (recordCount == 0) {
       logger.info("Match query [" + matchQuery.getQueryString() + "] did not find a matching instance. Will POST a new instance");

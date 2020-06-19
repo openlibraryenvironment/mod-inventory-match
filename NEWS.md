@@ -1,3 +1,11 @@
+## 3.1.0
+
+ * Uses newly introduced Inventory (forks) Instance field `matchKey` (PR-466)
+
+## 3.0.0
+
+ * Multiple updates to match-key, aligning more closely with CoAlliance (PR-155)
+
 ## 2.4.3
 
  * Fix concurrency issue introduced with 2.4.1

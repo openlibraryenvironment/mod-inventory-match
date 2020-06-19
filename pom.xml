@@ -7,7 +7,7 @@
 
   <groupId>org.folio</groupId>
   <artifactId>mod-inventory-match</artifactId>
-  <version>2.4.3-SNAPSHOT</version>
+  <version>3.1.0</version>
   <name>mod-inventory-match</name>
 
   <licenses>
@@ -201,8 +201,20 @@
             <exclude>**/package/**XYZ.class</exclude>
           </excludes>
           <includes>
-            <include>**/test/InstanceMatchingTestSuite.class</include>
+              <include>**/test/InstanceMatchingTestSuite.class</include>
+              <include>**/UnitTest.class</include>
           </includes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>2.5.3</version>
+        <configuration>
+          <preparationGoals>clean verify</preparationGoals>
+          <tagNameFormat>v@{project.version}</tagNameFormat>
+          <pushChanges>false</pushChanges>
+          <localCheckout>true</localCheckout>
         </configuration>
       </plugin>
 
